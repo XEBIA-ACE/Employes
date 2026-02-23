@@ -1,0 +1,55 @@
+<mat-toolbar class="header-toolbar" color="primary">
+  <!-- Sidebar toggle -->
+  <button mat-icon-button (click)="sidebarToggle.emit()" aria-label="Toggle sidebar">
+    <mat-icon>{{ sidebarOpen ? 'menu_open' : 'menu' }}</mat-icon>
+  </button>
+
+  <!-- App brand -->
+  <span class="brand-title">Employee Portal</span>
+
+  <span class="spacer"></span>
+
+  <!-- Notifications -->
+  <button mat-icon-button aria-label="Notifications">
+    <mat-icon [matBadge]="'3'" matBadgeColor="warn">notifications</mat-icon>
+  </button>
+
+  <!-- User menu -->
+  <button mat-button [matMenuTriggerFor]="userMenu" class="user-menu-btn">
+    <div class="user-avatar-wrap">
+      <img
+        *ngIf="currentUser?.avatar; else initialsAvatar"
+        [src]="currentUser!.avatar"
+        [alt]="currentUser!.firstName"
+        class="avatar-img"
+      />
+      <ng-template #initialsAvatar>
+        <div class="avatar-initials">{{ userInitials }}</div>
+      </ng-template>
+    </div>
+    <span class="user-name">{{ currentUser?.firstName }} {{ currentUser?.lastName }}</span>
+    <mat-icon>arrow_drop_down</mat-icon>
+  </button>
+
+  <mat-menu #userMenu="matMenu" xPosition="before">
+    <div class="user-menu-header">
+      <p class="user-menu-name">{{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
+      <p class="user-menu-role">{{ currentUser?.role | titlecase }}</p>
+      <p class="user-menu-email">{{ currentUser?.email }}</p>
+    </div>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="navigateToProfile()">
+      <mat-icon>person</mat-icon>
+      <span>My Profile</span>
+    </button>
+    <button mat-menu-item routerLink="/profile/settings">
+      <mat-icon>settings</mat-icon>
+      <span>Settings</span>
+    </button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="logout()" class="logout-btn">
+      <mat-icon>logout</mat-icon>
+      <span>Sign Out</span>
+    </button>
+  </mat-menu>
+</mat-toolbar>

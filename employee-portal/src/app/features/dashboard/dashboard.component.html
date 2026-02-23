@@ -1,0 +1,171 @@
+<div class="dashboard-page">
+  <!-- Loading -->
+  <app-loading-spinner *ngIf="isLoading" [inline]="true" message="Loading dashboard..."></app-loading-spinner>
+
+  <ng-container *ngIf="!isLoading && stats">
+
+    <!-- Greeting header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">{{ greeting }}, {{ currentUser?.firstName }}! 👋</h1>
+        <p class="page-subtitle">Here's what's happening in your organization today.</p>
+      </div>
+      <button mat-stroked-button (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="stats-grid">
+      <div class="stat-card card-primary">
+        <div class="stat-icon-wrap primary">
+          <mat-icon>people</mat-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.totalEmployees | number }}</div>
+          <div class="stat-label">Total Employees</div>
+          <div class="stat-sub">{{ stats.activeEmployees }} active</div>
+        </div>
+      </div>
+
+      <div class="stat-card card-warn">
+        <div class="stat-icon-wrap warn">
+          <mat-icon>event_busy</mat-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.onLeaveToday | number }}</div>
+          <div class="stat-label">On Leave Today</div>
+          <div class="stat-sub">{{ stats.pendingLeaveRequests }} pending</div>
+        </div>
+      </div>
+
+      <div class="stat-card card-success">
+        <div class="stat-icon-wrap success">
+          <mat-icon>person_add</mat-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.newHiresThisMonth | number }}</div>
+          <div class="stat-label">New Hires This Month</div>
+          <div class="stat-sub">Welcome aboard!</div>
+        </div>
+      </div>
+
+      <div class="stat-card card-accent">
+        <div class="stat-icon-wrap accent">
+          <mat-icon>pending_actions</mat-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.pendingLeaveRequests | number }}</div>
+          <div class="stat-label">Pending Approvals</div>
+          <a routerLink="/leave/approvals" class="stat-link">View all →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content grid -->
+    <div class="content-grid">
+
+      <!-- Department breakdown -->
+      <mat-card class="dept-card">
+        <mat-card-header>
+          <mat-card-title>Department Overview</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="dept-list">
+            <div *ngFor="let dept of stats.departmentBreakdown" class="dept-item">
+              <div class="dept-info">
+                <mat-icon>business</mat-icon>
+                <span class="dept-name">{{ dept.department }}</span>
+              </div>
+              <div class="dept-progress">
+                <mat-progress-bar
+                  mode="determinate"
+                  [value]="(dept.count / stats!.totalEmployees) * 100"
+                  color="primary"
+                ></mat-progress-bar>
+              </div>
+              <span class="dept-count">{{ dept.count }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Announcements -->
+      <mat-card class="announcements-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>campaign</mat-icon>
+            Announcements
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div *ngIf="announcements.length === 0" class="empty-state">
+            <mat-icon>notifications_none</mat-icon>
+            <p>No announcements at this time.</p>
+          </div>
+          <div class="announcements-list">
+            <div *ngFor="let ann of announcements" class="announcement-item">
+              <div class="ann-header">
+                <span class="badge" [class]="'badge-' + (ann.priority === 'high' ? 'danger' : ann.priority === 'medium' ? 'warn' : 'info')">
+                  {{ ann.priority }}
+                </span>
+                <span class="ann-date">{{ ann.publishedAt | date:'MMM d, y' }}</span>
+              </div>
+              <h4 class="ann-title">{{ ann.title }}</h4>
+              <p class="ann-content">{{ ann.content }}</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Upcoming birthdays -->
+      <mat-card class="birthdays-card" *ngIf="stats.upcomingBirthdays.length > 0">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>cake</mat-icon>
+            Upcoming Birthdays
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="birthday-list">
+            <div *ngFor="let bday of stats.upcomingBirthdays" class="birthday-item">
+              <div class="avatar-circle">{{ bday.name | initials }}</div>
+              <div class="birthday-info">
+                <span class="name">{{ bday.name }}</span>
+                <span class="date">{{ bday.date | date:'MMMM d' }}</span>
+              </div>
+              <mat-icon class="cake-icon">cake</mat-icon>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Recent activity -->
+      <mat-card class="activity-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>history</mat-icon>
+            Recent Activity
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div *ngIf="stats.recentActivity.length === 0" class="empty-state">
+            <mat-icon>inbox</mat-icon>
+            <p>No recent activity.</p>
+          </div>
+          <div class="activity-list">
+            <div *ngFor="let act of stats.recentActivity" class="activity-item">
+              <div class="activity-dot"></div>
+              <div class="activity-content">
+                <p class="activity-desc">{{ act.description }}</p>
+                <span class="activity-time">{{ act.timestamp | date:'MMM d, h:mm a' }}</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+  </ng-container>
+</div>

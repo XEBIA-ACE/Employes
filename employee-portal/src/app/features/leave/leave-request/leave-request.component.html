@@ -1,0 +1,125 @@
+<div class="leave-request-page">
+  <div class="page-header">
+    <div class="header-left">
+      <button mat-icon-button routerLink="/leave/my-leaves"><mat-icon>arrow_back</mat-icon></button>
+      <div>
+        <h1 class="page-title">Request Leave</h1>
+        <p class="page-subtitle">Submit a new leave request for approval</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="request-layout">
+    <!-- Form -->
+    <div class="form-panel">
+      <mat-card>
+        <mat-card-content>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+            <!-- Leave type -->
+            <div class="form-section">
+              <h3 class="form-section-title">Leave Type</h3>
+              <div class="leave-types-grid">
+                <div
+                  *ngFor="let type of leaveTypes"
+                  class="leave-type-option"
+                  [class.selected]="form.get('leaveType')?.value === type.value"
+                  (click)="form.get('leaveType')?.setValue(type.value)"
+                >
+                  <mat-icon>{{ type.icon }}</mat-icon>
+                  <span>{{ type.label }}</span>
+                  <small *ngIf="getBalance(type.value) as bal">
+                    {{ bal.remainingDays }} days left
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dates -->
+            <div class="form-section">
+              <h3 class="form-section-title">Duration</h3>
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Start Date *</mat-label>
+                  <input matInput [matDatepicker]="startPicker" formControlName="startDate" [min]="today">
+                  <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #startPicker></mat-datepicker>
+                  <mat-error>Start date is required</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>End Date *</mat-label>
+                  <input matInput [matDatepicker]="endPicker" formControlName="endDate"
+                         [min]="form.get('startDate')?.value || today">
+                  <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #endPicker></mat-datepicker>
+                  <mat-error>End date is required</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="duration-summary" *ngIf="totalDays > 0">
+                <mat-icon>info_outline</mat-icon>
+                <span>Total: <strong>{{ totalDays }} working day(s)</strong></span>
+              </div>
+            </div>
+
+            <!-- Reason -->
+            <div class="form-section">
+              <h3 class="form-section-title">Reason</h3>
+              <mat-form-field appearance="outline" style="width:100%">
+                <mat-label>Reason for leave *</mat-label>
+                <textarea
+                  matInput
+                  formControlName="reason"
+                  rows="4"
+                  placeholder="Please provide a brief explanation for your leave request..."
+                ></textarea>
+                <mat-hint align="end">{{ form.get('reason')?.value?.length ?? 0 }} / 500</mat-hint>
+                <mat-error *ngIf="form.get('reason')?.hasError('required')">Reason is required</mat-error>
+                <mat-error *ngIf="form.get('reason')?.hasError('minlength')">Minimum 10 characters</mat-error>
+              </mat-form-field>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+              <button mat-stroked-button type="button" (click)="cancel()">Cancel</button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isSaving">
+                <mat-spinner *ngIf="isSaving" [diameter]="20" color="accent"></mat-spinner>
+                Submit Request
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Balance summary -->
+    <div class="balance-panel">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Leave Balance {{ this.currentYear }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <app-loading-spinner *ngIf="isLoading" [inline]="true" [diameter]="32"></app-loading-spinner>
+          <div *ngIf="!isLoading" class="balance-list">
+            <div *ngFor="let bal of balances" class="balance-item">
+              <div class="balance-header">
+                <span class="balance-type">{{ bal.leaveType | titlecase }}</span>
+                <span class="balance-remaining">{{ bal.remainingDays }} / {{ bal.totalDays }}</span>
+              </div>
+              <mat-progress-bar
+                mode="determinate"
+                [value]="(bal.remainingDays / bal.totalDays) * 100"
+                [color]="bal.remainingDays < 3 ? 'warn' : 'primary'"
+              ></mat-progress-bar>
+              <div class="balance-sub">
+                <span>{{ bal.usedDays }} used</span>
+                <span>{{ bal.remainingDays }} remaining</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+<!-- Authenticated shell layout -->
+<ng-container *ngIf="isAuthenticated">
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <app-sidebar [isOpen]="isSidebarOpen"></app-sidebar>
+
+    <!-- Main area -->
+    <div class="main-area" [class.sidebar-collapsed]="!isSidebarOpen">
+
+      <!-- Header -->
+      <app-header
+        [sidebarOpen]="isSidebarOpen"
+        (sidebarToggle)="onSidebarToggle()"
+      ></app-header>
+
+      <!-- Page content -->
+      <main class="content-area">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  </div>
+</ng-container>
+
+<!-- Unauthenticated (auth pages: no shell) -->
+<ng-container *ngIf="!isAuthenticated">
+  <router-outlet></router-outlet>
+</ng-container>

@@ -1,0 +1,107 @@
+<div class="profile-page">
+  <div class="page-header">
+    <h1 class="page-title">My Profile</h1>
+    <p class="page-subtitle">View and manage your personal information</p>
+  </div>
+
+  <div class="profile-layout">
+    <!-- Profile card -->
+    <mat-card class="profile-info-card">
+      <div class="profile-avatar-section">
+        <div class="avatar-large">{{ userInitials }}</div>
+        <h2>{{ currentUser?.firstName }} {{ currentUser?.lastName }}</h2>
+        <p class="role-chip">{{ currentUser?.role | titlecase }}</p>
+        <p class="dept">{{ currentUser?.department }}</p>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <div class="info-section">
+        <div class="info-row">
+          <mat-icon>badge</mat-icon>
+          <div>
+            <span class="label">Employee ID</span>
+            <span class="value">{{ currentUser?.employeeId ?? '—' }}</span>
+          </div>
+        </div>
+        <div class="info-row">
+          <mat-icon>email</mat-icon>
+          <div>
+            <span class="label">Email</span>
+            <span class="value">{{ currentUser?.email }}</span>
+          </div>
+        </div>
+        <div class="info-row">
+          <mat-icon>business</mat-icon>
+          <div>
+            <span class="label">Department</span>
+            <span class="value">{{ currentUser?.department ?? '—' }}</span>
+          </div>
+        </div>
+        <div class="info-row">
+          <mat-icon>schedule</mat-icon>
+          <div>
+            <span class="label">Last Login</span>
+            <span class="value">{{ currentUser?.lastLogin | date:'MMM d, y h:mm a' }}</span>
+          </div>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Right panel -->
+    <div class="profile-right">
+
+      <!-- Change Password -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>lock</mat-icon>
+            Change Password
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate>
+            <mat-form-field appearance="outline" style="width:100%">
+              <mat-label>Current Password</mat-label>
+              <input matInput [type]="hideCurrentPwd ? 'password' : 'text'" formControlName="currentPassword">
+              <button mat-icon-button matSuffix type="button" (click)="hideCurrentPwd = !hideCurrentPwd">
+                <mat-icon>{{ hideCurrentPwd ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              <mat-error *ngIf="passwordForm.get('currentPassword')?.hasError('required')">Required</mat-error>
+            </mat-form-field>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>New Password</mat-label>
+                <input matInput [type]="hideNewPwd ? 'password' : 'text'" formControlName="newPassword">
+                <button mat-icon-button matSuffix type="button" (click)="hideNewPwd = !hideNewPwd">
+                  <mat-icon>{{ hideNewPwd ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+                <mat-hint>Minimum 8 characters</mat-hint>
+                <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('required')">Required</mat-error>
+                <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('minlength')">Minimum 8 characters</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Confirm Password</mat-label>
+                <input matInput [type]="hideConfirmPwd ? 'password' : 'text'" formControlName="confirmPassword">
+                <button mat-icon-button matSuffix type="button" (click)="hideConfirmPwd = !hideConfirmPwd">
+                  <mat-icon>{{ hideConfirmPwd ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+                <mat-error *ngIf="passwordForm.hasError('mismatch')">Passwords do not match</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button mat-raised-button color="primary" type="submit"
+                      [disabled]="passwordForm.invalid || isSaving">
+                <mat-spinner *ngIf="isSaving" [diameter]="20" color="accent"></mat-spinner>
+                Update Password
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

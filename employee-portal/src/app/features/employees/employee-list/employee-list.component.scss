@@ -1,0 +1,89 @@
+.employee-list-page { padding: 24px; }
+
+.filters-card {
+  margin-bottom: 20px;
+  padding: 16px 20px !important;
+  border-radius: 12px !important;
+
+  .filters-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .search-field { flex: 2; min-width: 240px; }
+  .filter-field { flex: 1; min-width: 160px; }
+
+  mat-form-field { margin-bottom: -1.25em; }
+}
+
+.loading-row { margin-bottom: 4px; }
+
+.table-container {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.employee-table {
+  width: 100%;
+
+  .avatar-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .avatar-initials {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e8eaf6;
+    color: #3949ab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .emp-id {
+    background: #f5f5f5;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+  }
+
+  .name-cell {
+    display: flex;
+    flex-direction: column;
+    .name  { font-weight: 500; font-size: 14px; }
+    .email { font-size: 12px; color: rgba(0,0,0,0.54); }
+  }
+}
+
+.clickable-row {
+  cursor: pointer;
+  &:hover { background: #f5f5f5; }
+}
+
+.empty-table-cell {
+  padding: 48px !important;
+  text-align: center;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: rgba(0,0,0,0.38);
+  gap: 8px;
+
+  mat-icon { font-size: 48px; width: 48px; height: 48px; }
+  p { margin: 0; font-size: 14px; }
+}
+
+mat-paginator { border-top: 1px solid rgba(0,0,0,0.12); background: white; }

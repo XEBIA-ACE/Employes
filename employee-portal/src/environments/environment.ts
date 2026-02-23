@@ -1,15 +1,21 @@
+// Development environment configuration
+// This file is replaced by environment.prod.ts during production build
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api/v1',
+  apiBaseUrl: 'http://localhost:8080/api/v1',
+  apiTimeout: 30000,
   appName: 'Employee Portal',
-  version: '1.0.0',
+  appVersion: '1.0.0',
+  logLevel: 'debug',
   features: {
-    leaveManagement: true,
-    announcements: true,
-    performanceReview: false,
+    payrollEnabled: true,
+    leaveManagementEnabled: true,
+    performanceReviewEnabled: false,
+    analyticsEnabled: false,
   },
-  logging: {
-    level: 'debug',
-    enableConsole: true,
+  auth: {
+    tokenKey: 'employee_portal_token',
+    refreshTokenKey: 'employee_portal_refresh_token',
+    tokenExpiryKey: 'employee_portal_token_expiry',
   },
 };

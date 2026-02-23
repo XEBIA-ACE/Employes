@@ -3,66 +3,84 @@ import { environment } from '../../../environments/environment';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-interface LogEntry {
-  level: LogLevel;
-  message: string;
-  context?: Record<string, unknown>;
-  timestamp: string;
-}
+const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
 
 /**
- * Structured logging service.
- * In production only warn/error levels are emitted.
- * Extend to ship logs to a remote service (e.g. Datadog, Sentry).
+ * Structured logging service with configurable log levels.
+ * In production, logs are filtered to `error` level only.
+ * Extend this service to send logs to a remote aggregator (e.g., Datadog, Splunk).
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class LoggerService {
-  private readonly levels: Record<LogLevel, number> = {
-    debug: 0,
-    info:  1,
-    warn:  2,
-    error: 3,
-  };
+  private readonly appName = environment.appName;
+  private readonly minLevel: LogLevel = environment.logLevel as LogLevel;
 
-  private get minLevel(): number {
-    return this.levels[environment.logging.level as LogLevel] ?? 1;
+  debug(message: string, ...args: unknown[]): void {
+    this.log('debug', message, ...args);
   }
 
-  debug(message: string, context?: Record<string, unknown>): void {
-    this.log('debug', message, context);
+  info(message: string, ...args: unknown[]): void {
+    this.log('info', message, ...args);
   }
 
-  info(message: string, context?: Record<string, unknown>): void {
-    this.log('info', message, context);
+  warn(message: string, ...args: unknown[]): void {
+    this.log('warn', message, ...args);
   }
 
-  warn(message: string, context?: Record<string, unknown>): void {
-    this.log('warn', message, context);
+  error(message: string, ...args: unknown[]): void {
+    this.log('error', message, ...args);
   }
 
-  error(message: string, context?: Record<string, unknown>): void {
-    this.log('error', message, context);
-  }
+  private log(level: LogLevel, message: string, ...args: unknown[]): void {
+    if (!this.shouldLog(level)) {
+      return;
+    }
 
-  private log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
-    if (this.levels[level] < this.minLevel) return;
-
-    const entry: LogEntry = {
-      level,
-      message,
-      context,
+    const entry = {
       timestamp: new Date().toISOString(),
+      level: level.toUpperCase(),
+      app: this.appName,
+      message,
+      ...(args.length > 0 && { details: args }),
     };
 
-    if (!environment.logging.enableConsole) return;
-
-    const formatted = `[${entry.timestamp}] [${level.toUpperCase()}] ${message}`;
-
     switch (level) {
-      case 'debug': console.debug(formatted, context ?? ''); break;
-      case 'info':  console.info(formatted, context ?? '');  break;
-      case 'warn':  console.warn(formatted, context ?? '');  break;
-      case 'error': console.error(formatted, context ?? ''); break;
+      case 'debug':
+        console.debug(`[${entry.level}] ${entry.timestamp} ${entry.message}`, ...args);
+        break;
+      case 'info':
+        console.info(`[${entry.level}] ${entry.timestamp} ${entry.message}`, ...args);
+        break;
+      case 'warn':
+        console.warn(`[${entry.level}] ${entry.timestamp} ${entry.message}`, ...args);
+        break;
+      case 'error':
+        console.error(`[${entry.level}] ${entry.timestamp} ${entry.message}`, ...args);
+        // In production, send to remote logging service
+        if (environment.production) {
+          this.sendToRemote(entry);
+        }
+        break;
     }
+  }
+
+  private shouldLog(level: LogLevel): boolean {
+    return LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[this.minLevel];
+  }
+
+  /**
+   * Placeholder for sending logs to a remote aggregation service.
+   * Replace with actual implementation (e.g., Datadog, Sentry, custom endpoint).
+   */
+  private sendToRemote(entry: Record<string, unknown>): void {
+    // TODO: Implement remote logging
+    // Example: this.http.post('/api/logs', entry).subscribe();
   }
 }

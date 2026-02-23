@@ -1,0 +1,19 @@
+.loading-inline {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 0;
+}
+
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+
+  .loading-message {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+}

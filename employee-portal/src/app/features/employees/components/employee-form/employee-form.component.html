@@ -1,0 +1,181 @@
+<div class="page-header">
+  <h1 class="page-title">{{ isEditMode ? 'Edit Employee' : 'Add New Employee' }}</h1>
+  <button mat-icon-button (click)="onCancel()" matTooltip="Cancel">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <mat-stepper linear #stepper orientation="vertical">
+
+    <!-- Step 1: Personal Information -->
+    <mat-step label="Personal Information">
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>First Name *</mat-label>
+          <input matInput formControlName="firstName">
+          <mat-error *ngIf="form.get('firstName')?.hasError('required')">Required</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Last Name *</mat-label>
+          <input matInput formControlName="lastName">
+          <mat-error *ngIf="form.get('lastName')?.hasError('required')">Required</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Email Address *</mat-label>
+          <input matInput type="email" formControlName="email">
+          <mat-error *ngIf="form.get('email')?.hasError('required')">Required</mat-error>
+          <mat-error *ngIf="form.get('email')?.hasError('email')">Invalid email</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Phone Number</mat-label>
+          <input matInput type="tel" formControlName="phone">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Gender *</mat-label>
+          <mat-select formControlName="gender">
+            <mat-option *ngFor="let g of genders" [value]="g.value">{{ g.label }}</mat-option>
+          </mat-select>
+          <mat-error>Required</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Date of Birth *</mat-label>
+          <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth">
+          <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
+          <mat-datepicker #dobPicker></mat-datepicker>
+          <mat-error>Required</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>National ID</mat-label>
+          <input matInput formControlName="nationalId">
+        </mat-form-field>
+      </div>
+
+      <div class="step-actions">
+        <button mat-flat-button color="primary" matStepperNext type="button">Next</button>
+      </div>
+    </mat-step>
+
+    <!-- Step 2: Employment Details -->
+    <mat-step label="Employment Details">
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Department *</mat-label>
+          <mat-select formControlName="department">
+            <mat-option *ngFor="let d of departments" [value]="d.value">{{ d.label }}</mat-option>
+          </mat-select>
+          <mat-error>Required</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Position / Job Title *</mat-label>
+          <input matInput formControlName="position">
+          <mat-error>Required</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Employment Type *</mat-label>
+          <mat-select formControlName="employmentType">
+            <mat-option *ngFor="let t of employmentTypes" [value]="t.value">{{ t.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Hire Date *</mat-label>
+          <input matInput [matDatepicker]="hirePicker" formControlName="hireDate">
+          <mat-datepicker-toggle matSuffix [for]="hirePicker"></mat-datepicker-toggle>
+          <mat-datepicker #hirePicker></mat-datepicker>
+          <mat-error>Required</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Base Salary *</mat-label>
+          <input matInput type="number" formControlName="baseSalary" min="0">
+          <span matPrefix>$&nbsp;</span>
+          <mat-error>Required — must be a positive number</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Currency</mat-label>
+          <mat-select formControlName="currency">
+            <mat-option value="USD">USD</mat-option>
+            <mat-option value="EUR">EUR</mat-option>
+            <mat-option value="GBP">GBP</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="step-actions">
+        <button mat-button matStepperPrevious type="button">Back</button>
+        <button mat-flat-button color="primary" matStepperNext type="button">Next</button>
+      </div>
+    </mat-step>
+
+    <!-- Step 3: Address & Emergency Contact -->
+    <mat-step label="Address & Emergency Contact">
+      <h3>Address</h3>
+      <div class="form-row">
+        <mat-form-field appearance="outline" style="grid-column: 1 / -1">
+          <mat-label>Street Address</mat-label>
+          <input matInput formControlName="street">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>City</mat-label>
+          <input matInput formControlName="city">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>State / Province</mat-label>
+          <input matInput formControlName="state">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Postal Code</mat-label>
+          <input matInput formControlName="postalCode">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Country</mat-label>
+          <input matInput formControlName="country">
+        </mat-form-field>
+      </div>
+
+      <mat-divider class="mt-2 mb-2"></mat-divider>
+
+      <h3>Emergency Contact</h3>
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Full Name</mat-label>
+          <input matInput formControlName="emergencyName">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Relationship</mat-label>
+          <input matInput formControlName="emergencyRelationship">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Phone Number</mat-label>
+          <input matInput type="tel" formControlName="emergencyPhone">
+        </mat-form-field>
+      </div>
+
+      <div class="step-actions">
+        <button mat-button matStepperPrevious type="button">Back</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="isLoading">
+          <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+          <span *ngIf="!isLoading">{{ isEditMode ? 'Update Employee' : 'Create Employee' }}</span>
+        </button>
+        <button mat-button type="button" (click)="onCancel()">Cancel</button>
+      </div>
+    </mat-step>
+
+  </mat-stepper>
+</form>

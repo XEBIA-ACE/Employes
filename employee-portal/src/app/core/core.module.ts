@@ -1,27 +1,43 @@
 import { NgModule, Optional, SkipSelf } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+
 import { AuthInterceptor } from './interceptors/auth.interceptor';
-import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { ErrorInterceptor } from './interceptors/error.interceptor';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 /**
- * CoreModule — imported once in AppModule.
- * Registers singleton services and HTTP interceptors.
+ * CoreModule provides singleton services and HTTP interceptors.
+ * It should be imported ONLY ONCE in AppModule.
+ * The constructor guard prevents accidental re-imports.
  */
 @NgModule({
-  imports: [CommonModule, HttpClientModule],
+  imports: [CommonModule, MatSnackBarModule],
   providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: LoggingInterceptor, multi: true },
-    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor,    multi: true },
-    { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor,   multi: true },
+    // Order matters: logging → auth → error
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: LoggingInterceptor,
+      multi: true,
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true,
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: ErrorInterceptor,
+      multi: true,
+    },
   ],
 })
 export class CoreModule {
-  /** Prevent multiple imports of CoreModule. */
-  constructor(@Optional() @SkipSelf() parentModule?: CoreModule) {
+  /** Guard against importing CoreModule more than once */
+  constructor(@Optional() @SkipSelf() parentModule: CoreModule) {
     if (parentModule) {
-      throw new Error('CoreModule is already loaded. Import it only in AppModule.');
+      throw new Error('CoreModule is already loaded. Import it in AppModule only.');
     }
   }
 }

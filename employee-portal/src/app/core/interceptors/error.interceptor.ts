@@ -1,18 +1,21 @@
+import { Injectable } from '@angular/core';
 import {
-  HttpInterceptor,
   HttpRequest,
   HttpHandler,
   HttpEvent,
+  HttpInterceptor,
   HttpErrorResponse,
 } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable, throwError, catchError } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+
 import { NotificationService } from '../services/notification.service';
 import { LoggerService } from '../services/logger.service';
 
 /**
- * Global HTTP error handler.
- * Maps HTTP status codes to user-friendly snackbar messages.
+ * ErrorInterceptor provides centralized HTTP error handling.
+ * Transforms API errors into user-friendly notifications and
+ * re-throws the error so individual components can handle specifics.
  */
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
@@ -21,37 +24,54 @@ export class ErrorInterceptor implements HttpInterceptor {
     private logger: LoggerService,
   ) {}
 
-  intercept(req: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    return next.handle(req).pipe(
-      catchError((err: HttpErrorResponse) => {
-        // 401 is handled by AuthInterceptor; skip here
-        if (err.status === 401) return throwError(() => err);
+  intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
+    return next.handle(request).pipe(
+      catchError((error: HttpErrorResponse) => {
+        this.logger.error(`HTTP Error ${error.status}: ${request.url}`, error);
 
-        const message = this.resolveMessage(err);
-        this.logger.error('API error', { url: req.url, status: err.status, message });
-        this.notification.error(message);
+        let userMessage = 'An unexpected error occurred. Please try again.';
 
-        return throwError(() => err);
+        if (error.error instanceof ErrorEvent) {
+          // Client-side / network error
+          userMessage = `Network error: ${error.error.message}`;
+        } else {
+          // Server-side error
+          switch (error.status) {
+            case 400:
+              userMessage = error.error?.message || 'Invalid request. Please check your input.';
+              break;
+            case 401:
+              // Handled by AuthInterceptor — silent here
+              return throwError(() => error);
+            case 403:
+              userMessage = 'You do not have permission to perform this action.';
+              break;
+            case 404:
+              userMessage = 'The requested resource was not found.';
+              break;
+            case 409:
+              userMessage = error.error?.message || 'Conflict: resource already exists.';
+              break;
+            case 422:
+              userMessage = error.error?.message || 'Validation failed. Please check your input.';
+              break;
+            case 429:
+              userMessage = 'Too many requests. Please slow down and try again.';
+              break;
+            case 500:
+            case 502:
+            case 503:
+              userMessage = 'Server error. Our team has been notified. Please try again later.';
+              break;
+            case 0:
+              userMessage = 'Cannot connect to the server. Check your network connection.';
+              break;
+          }
+        }
+
+        this.notification.error(userMessage);
+        return throwError(() => error);
       }),
     );
-  }
-
-  private resolveMessage(err: HttpErrorResponse): string {
-    // Prefer server-provided message
-    const serverMsg: string | undefined = err.error?.message;
-    if (serverMsg) return serverMsg;
-
-    switch (err.status) {
-      case 400: return 'Invalid request. Please check your input.';
-      case 403: return 'You do not have permission to perform this action.';
-      case 404: return 'The requested resource was not found.';
-      case 409: return 'A conflict occurred. The resource may already exist.';
-      case 422: return 'Validation failed. Please review the form.';
-      case 429: return 'Too many requests. Please wait a moment and try again.';
-      case 500: return 'An internal server error occurred. Please try again later.';
-      case 503: return 'Service temporarily unavailable. Please try again shortly.';
-      case 0:   return 'Unable to connect to the server. Check your network connection.';
-      default:  return 'An unexpected error occurred.';
-    }
   }
 }

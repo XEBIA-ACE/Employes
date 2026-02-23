@@ -1,0 +1,133 @@
+.welcome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding: 24px;
+  background: linear-gradient(135deg, #3f51b5, #5c6bc0);
+  border-radius: var(--border-radius-md);
+  color: white;
+
+  .welcome-text {
+    h1 {
+      margin: 0 0 4px;
+      font-size: 24px;
+      font-weight: 500;
+    }
+
+    p {
+      margin: 0;
+      opacity: 0.85;
+      font-size: 14px;
+    }
+  }
+
+  .date {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  border-radius: var(--border-radius-md) !important;
+
+  .stat-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px;
+
+    .stat-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      mat-icon {
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
+      }
+    }
+
+    .stat-info {
+      flex: 1;
+      min-width: 0;
+
+      .stat-title {
+        margin: 0;
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .stat-value {
+        margin: 4px 0;
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+      }
+
+      .stat-change {
+        margin: 0;
+        font-size: 12px;
+
+        &.positive { color: #2e7d32; }
+        &.negative { color: #c62828; }
+        &.neutral { color: var(--text-secondary); }
+      }
+    }
+  }
+}
+
+.activity-list {
+  .activity-item {
+    border-bottom: 1px solid var(--border-color);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .activity-icon {
+      color: var(--primary-color);
+    }
+
+    .activity-time {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+  }
+}
+
+.quick-actions-card {
+  .quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+}

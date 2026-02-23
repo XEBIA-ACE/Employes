@@ -1,98 +1,70 @@
 /**
- * Standard API response wrapper for all backend responses.
+ * Standard API response wrapper
  */
 export interface ApiResponse<T> {
   data: T;
-  message?: string;
+  message: string;
+  success: boolean;
   timestamp: string;
 }
 
 /**
- * Paginated response wrapper.
+ * Paginated API response
  */
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: Pagination;
-  message?: string;
-}
-
-export interface Pagination {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+  message: string;
+  success: boolean;
+  timestamp: string;
 }
 
 /**
- * Standard error response from the API.
+ * Pagination metadata
+ */
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+/**
+ * API error response
  */
 export interface ApiError {
   statusCode: number;
   message: string;
-  errors?: ValidationError[];
+  error: string;
+  details?: Record<string, string[]>;
   timestamp: string;
   path: string;
 }
 
-export interface ValidationError {
-  field: string;
-  message: string;
-  value?: unknown;
+/**
+ * Query parameters for list endpoints
+ */
+export interface QueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  [key: string]: unknown;
 }
 
 /**
- * Health check response.
+ * Sort direction
  */
-export interface HealthResponse {
-  status: 'ok' | 'degraded' | 'down';
-  version: string;
-  timestamp: string;
-  services: Record<string, 'ok' | 'down'>;
-}
+export type SortDirection = 'asc' | 'desc' | '';
 
 /**
- * Dashboard summary statistics.
+ * Select option for dropdowns
  */
-export interface DashboardStats {
-  totalEmployees: number;
-  activeEmployees: number;
-  onLeaveToday: number;
-  newHiresThisMonth: number;
-  pendingLeaveRequests: number;
-  upcomingBirthdays: Array<{
-    employeeId: string;
-    name: string;
-    date: string;
-    avatar?: string;
-  }>;
-  departmentBreakdown: Array<{
-    department: string;
-    count: number;
-  }>;
-  leaveTypeSummary: Array<{
-    leaveType: string;
-    count: number;
-  }>;
-  recentActivity: ActivityItem[];
-}
-
-export interface ActivityItem {
-  id: string;
-  type: 'leave_request' | 'new_employee' | 'leave_approved' | 'leave_rejected' | 'profile_update';
-  description: string;
-  actor: string;
-  timestamp: Date;
-}
-
-export interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  priority: 'low' | 'medium' | 'high';
-  publishedAt: Date;
-  expiresAt?: Date;
-  authorId: string;
-  author?: string;
+export interface SelectOption<T = string> {
+  label: string;
+  value: T;
+  disabled?: boolean;
 }

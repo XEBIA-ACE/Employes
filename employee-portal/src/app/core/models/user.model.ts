@@ -1,36 +1,58 @@
-export type UserRole = 'admin' | 'hr' | 'manager' | 'employee';
+/**
+ * User role definitions
+ */
+export type UserRole = 'admin' | 'hr_manager' | 'manager' | 'employee';
 
+/**
+ * Represents an authenticated user
+ */
 export interface User {
   id: string;
+  employeeId: string;
   email: string;
   firstName: string;
   lastName: string;
+  fullName: string;
   role: UserRole;
-  avatar?: string;
-  department?: string;
-  employeeId?: string;
+  roles: UserRole[];
+  department: string;
+  position: string;
+  avatarUrl?: string;
+  isActive: boolean;
   lastLogin?: Date;
+  createdAt: Date;
 }
 
-export interface AuthUser extends User {
-  token: string;
-  refreshToken: string;
-  expiresAt: number;
-}
-
-export interface LoginRequest {
+/**
+ * Authentication credentials
+ */
+export interface LoginCredentials {
   email: string;
   password: string;
   rememberMe?: boolean;
 }
 
-export interface LoginResponse {
-  user: User;
-  token: string;
+/**
+ * Auth tokens returned from the API
+ */
+export interface AuthTokens {
+  accessToken: string;
   refreshToken: string;
   expiresIn: number;
+  tokenType: string;
 }
 
+/**
+ * Login response from the API
+ */
+export interface LoginResponse {
+  user: User;
+  tokens: AuthTokens;
+}
+
+/**
+ * Password change request
+ */
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;

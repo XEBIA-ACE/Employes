@@ -1,0 +1,6 @@
+<div [class]="overlay ? 'loading-overlay' : 'loading-inline'" role="status" aria-live="polite">
+  <div class="spinner-container">
+    <mat-spinner [diameter]="diameter" color="primary"></mat-spinner>
+    <p class="loading-message" *ngIf="message">{{ message }}</p>
+  </div>
+</div>

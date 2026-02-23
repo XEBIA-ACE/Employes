@@ -1,0 +1,133 @@
+<div class="page-header">
+  <h1 class="page-title">Employees</h1>
+  <div class="header-actions">
+    <button mat-stroked-button (click)="onExport()">
+      <mat-icon>download</mat-icon>
+      Export CSV
+    </button>
+    <button mat-flat-button color="primary" routerLink="/employees/new">
+      <mat-icon>person_add</mat-icon>
+      Add Employee
+    </button>
+  </div>
+</div>
+
+<mat-card class="portal-card">
+  <!-- Search & Filters -->
+  <div class="toolbar">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search employees...</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput [formControl]="searchControl" placeholder="Name, email, department...">
+      <button mat-icon-button matSuffix *ngIf="searchControl.value"
+              (click)="searchControl.setValue('')" aria-label="Clear search">
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <span class="spacer"></span>
+
+    <span class="result-count" *ngIf="!isLoading">
+      {{ total }} employees found
+    </span>
+  </div>
+
+  <!-- Loading state -->
+  <app-loading-spinner *ngIf="isLoading" message="Loading employees..."></app-loading-spinner>
+
+  <!-- Data Table -->
+  <div class="table-container" *ngIf="!isLoading">
+    <table mat-table [dataSource]="employees" matSort class="portal-table" aria-label="Employees list">
+
+      <!-- Avatar Column -->
+      <ng-container matColumnDef="avatar">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let employee">
+          <div class="employee-avatar" *ngIf="!employee.avatarUrl">
+            {{ userInitials(employee) }}
+          </div>
+          <img *ngIf="employee.avatarUrl" [src]="employee.avatarUrl" [alt]="employee.fullName"
+               class="employee-avatar-img">
+        </td>
+      </ng-container>
+
+      <!-- Employee Number Column -->
+      <ng-container matColumnDef="employeeNumber">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+        <td mat-cell *matCellDef="let employee" class="mono">{{ employee.employeeNumber }}</td>
+      </ng-container>
+
+      <!-- Full Name Column -->
+      <ng-container matColumnDef="fullName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+        <td mat-cell *matCellDef="let employee">
+          <div class="employee-name">{{ employee.fullName }}</div>
+          <div class="employee-email">{{ employee.email }}</div>
+        </td>
+      </ng-container>
+
+      <!-- Department Column -->
+      <ng-container matColumnDef="department">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
+        <td mat-cell *matCellDef="let employee">{{ employee.department }}</td>
+      </ng-container>
+
+      <!-- Position Column -->
+      <ng-container matColumnDef="position">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Position</th>
+        <td mat-cell *matCellDef="let employee">{{ employee.position }}</td>
+      </ng-container>
+
+      <!-- Status Column -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+        <td mat-cell *matCellDef="let employee">
+          <span class="badge" [ngClass]="'badge-' + (employee.status | statusBadge)">
+            {{ employee.status | titlecase }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Hire Date Column -->
+      <ng-container matColumnDef="hireDate">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Hire Date</th>
+        <td mat-cell *matCellDef="let employee">{{ employee.hireDate | date:'mediumDate' }}</td>
+      </ng-container>
+
+      <!-- Actions Column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-col">Actions</th>
+        <td mat-cell *matCellDef="let employee" class="actions-col">
+          <button mat-icon-button matTooltip="Edit" (click)="onEdit($event, employee)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button matTooltip="Delete" color="warn"
+                  (click)="onDelete($event, employee)" *appHasRole="['admin', 'hr_manager']">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+          (click)="onRowClick(row)" class="clickable-row"></tr>
+
+      <!-- Empty state row -->
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell empty-state" [attr.colspan]="displayedColumns.length">
+          <mat-icon>people_outline</mat-icon>
+          <p>No employees found</p>
+          <button mat-flat-button color="primary" routerLink="/employees/new">Add First Employee</button>
+        </td>
+      </tr>
+    </table>
+
+    <mat-paginator
+      [length]="total"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[5, 10, 25, 50]"
+      (page)="onPageChange($event)"
+      aria-label="Select page">
+    </mat-paginator>
+  </div>
+</mat-card>

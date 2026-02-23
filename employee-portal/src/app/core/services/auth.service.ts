@@ -1,30 +1,39 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap, map, catchError, throwError } from 'rxjs';
+import { Observable, BehaviorSubject, throwError, timer } from 'rxjs';
+import { tap, catchError, switchMap } from 'rxjs/operators';
+
 import { environment } from '../../../environments/environment';
-import { AuthUser, LoginRequest, LoginResponse, ChangePasswordRequest, User } from '../models/user.model';
+import {
+  User,
+  LoginCredentials,
+  LoginResponse,
+  AuthTokens,
+  ChangePasswordRequest,
+} from '../models/user.model';
 import { ApiResponse } from '../models/api-response.model';
 import { LoggerService } from './logger.service';
 
-const TOKEN_KEY         = 'ep_token';
-const REFRESH_TOKEN_KEY = 'ep_refresh_token';
-const USER_KEY          = 'ep_user';
-
 /**
- * Authentication service — handles login, logout, token management,
- * and exposes the current authenticated user as an Observable.
+ * AuthService handles all authentication operations:
+ * - Login / logout
+ * - Token storage and retrieval
+ * - Token refresh
+ * - Current user state
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class AuthService {
-  private readonly apiUrl = `${environment.apiUrl}/auth`;
+  private readonly apiUrl = `${environment.apiBaseUrl}/auth`;
+  private readonly TOKEN_KEY = environment.auth.tokenKey;
+  private readonly REFRESH_TOKEN_KEY = environment.auth.refreshTokenKey;
+  private readonly TOKEN_EXPIRY_KEY = environment.auth.tokenExpiryKey;
 
-  /** Emits the current authenticated user, or null when logged out. */
+  /** Observable current user — null if unauthenticated */
   private currentUserSubject = new BehaviorSubject<User | null>(this.loadStoredUser());
-  readonly currentUser$ = this.currentUserSubject.asObservable();
-
-  /** Quick boolean stream for guards / UI. */
-  readonly isAuthenticated$ = this.currentUser$.pipe(map(u => !!u));
+  public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(
     private http: HttpClient,
@@ -32,110 +41,166 @@ export class AuthService {
     private logger: LoggerService,
   ) {}
 
+  /** Returns the current user snapshot */
   get currentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
+  /** True if a valid session token exists */
   get isAuthenticated(): boolean {
-    return !!this.currentUser && !this.isTokenExpired();
+    const token = this.getAccessToken();
+    return !!token && !this.isTokenExpired();
   }
 
-  get token(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
-  }
-
-  /** Attempt login; stores credentials on success. */
-  login(credentials: LoginRequest): Observable<LoginResponse> {
+  /**
+   * Authenticates user with email/password credentials.
+   * Stores tokens and emits the authenticated user.
+   */
+  login(credentials: LoginCredentials): Observable<LoginResponse> {
     return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/login`, credentials).pipe(
-      map(res => res.data),
-      tap(res => {
-        this.storeSession(res);
-        this.logger.info('User logged in', { userId: res.user.id });
+      tap((response) => {
+        const { user, tokens } = response.data;
+        this.storeTokens(tokens, credentials.rememberMe);
+        this.storeUser(user);
+        this.currentUserSubject.next(user);
+        this.logger.info(`User logged in: ${user.email}`);
       }),
-      catchError(err => {
-        this.logger.error('Login failed', { error: err.message });
-        return throwError(() => err);
+      switchMap((response) => [response.data]),
+      catchError((error) => {
+        this.logger.error('Login failed', error);
+        return throwError(() => error);
       }),
     );
   }
 
-  /** Clears session and navigates to login. */
+  /**
+   * Logs out the current user, clears stored tokens,
+   * and redirects to the login page.
+   */
   logout(): void {
-    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
-      error: err => this.logger.warn('Logout request failed', { error: err.message }),
-    });
+    // Optionally notify the server
+    const refreshToken = this.getRefreshToken();
+    if (refreshToken) {
+      this.http.post(`${this.apiUrl}/logout`, { refreshToken }).subscribe({
+        error: (err) => this.logger.warn('Server logout failed', err),
+      });
+    }
+
     this.clearSession();
     this.router.navigate(['/auth/login']);
+    this.logger.info('User logged out');
   }
 
-  /** Refresh the access token using the stored refresh token. */
-  refreshToken(): Observable<{ token: string }> {
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    return this.http.post<ApiResponse<{ token: string }>>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
-      map(res => res.data),
-      tap(res => localStorage.setItem(TOKEN_KEY, res.token)),
-      catchError(err => {
-        this.clearSession();
-        return throwError(() => err);
-      }),
+  /**
+   * Requests a new access token using the stored refresh token.
+   */
+  refreshToken(): Observable<AuthTokens> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      return throwError(() => new Error('No refresh token available'));
+    }
+
+    return this.http
+      .post<ApiResponse<AuthTokens>>(`${this.apiUrl}/refresh`, { refreshToken })
+      .pipe(
+        tap((response) => {
+          this.storeTokens(response.data);
+          this.logger.debug('Access token refreshed');
+        }),
+        switchMap((response) => [response.data]),
+        catchError((error) => {
+          this.logger.error('Token refresh failed', error);
+          this.clearSession();
+          this.router.navigate(['/auth/login']);
+          return throwError(() => error);
+        }),
+      );
+  }
+
+  /**
+   * Sends a password reset link to the given email address.
+   */
+  requestPasswordReset(email: string): Observable<ApiResponse<null>> {
+    return this.http.post<ApiResponse<null>>(`${this.apiUrl}/forgot-password`, { email });
+  }
+
+  /**
+   * Resets the user's password using the provided token.
+   */
+  resetPassword(token: string, newPassword: string): Observable<ApiResponse<null>> {
+    return this.http.post<ApiResponse<null>>(`${this.apiUrl}/reset-password`, {
+      token,
+      newPassword,
+    });
+  }
+
+  /**
+   * Changes the current user's password.
+   */
+  changePassword(request: ChangePasswordRequest): Observable<ApiResponse<null>> {
+    return this.http.post<ApiResponse<null>>(`${this.apiUrl}/change-password`, request);
+  }
+
+  getAccessToken(): string | null {
+    return localStorage.getItem(this.TOKEN_KEY) || sessionStorage.getItem(this.TOKEN_KEY);
+  }
+
+  getRefreshToken(): string | null {
+    return (
+      localStorage.getItem(this.REFRESH_TOKEN_KEY) ||
+      sessionStorage.getItem(this.REFRESH_TOKEN_KEY)
     );
   }
 
-  changePassword(payload: ChangePasswordRequest): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/change-password`, payload);
+  isTokenExpired(): boolean {
+    const expiry =
+      localStorage.getItem(this.TOKEN_EXPIRY_KEY) ||
+      sessionStorage.getItem(this.TOKEN_EXPIRY_KEY);
+    if (!expiry) {
+      return true;
+    }
+    return Date.now() > parseInt(expiry, 10);
   }
 
-  forgotPassword(email: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/forgot-password`, { email });
-  }
-
-  resetPassword(token: string, newPassword: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/reset-password`, { token, newPassword });
-  }
-
-  hasRole(role: string | string[]): boolean {
+  hasRole(role: string): boolean {
     const user = this.currentUser;
-    if (!user) return false;
-    return Array.isArray(role) ? role.includes(user.role) : user.role === role;
+    return !!user && (user.roles.includes(role as any) || user.role === role);
   }
 
-  // ---------------------------------------------------------------------------
-  // Private helpers
-  // ---------------------------------------------------------------------------
-
-  private storeSession(res: LoginResponse): void {
-    const expiresAt = Date.now() + res.expiresIn * 1000;
-    const authUser: AuthUser = { ...res.user, token: res.token, refreshToken: res.refreshToken, expiresAt };
-    localStorage.setItem(TOKEN_KEY, res.token);
-    localStorage.setItem(REFRESH_TOKEN_KEY, res.refreshToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(authUser));
-    this.currentUserSubject.next(res.user);
+  hasAnyRole(roles: string[]): boolean {
+    return roles.some((role) => this.hasRole(role));
   }
 
-  private clearSession(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    this.currentUserSubject.next(null);
+  // ---- Private helpers ----
+
+  private storeTokens(tokens: AuthTokens, persistent = false): void {
+    const storage = persistent ? localStorage : sessionStorage;
+    storage.setItem(this.TOKEN_KEY, tokens.accessToken);
+    storage.setItem(this.REFRESH_TOKEN_KEY, tokens.refreshToken);
+    storage.setItem(
+      this.TOKEN_EXPIRY_KEY,
+      String(Date.now() + tokens.expiresIn * 1000),
+    );
+  }
+
+  private storeUser(user: User): void {
+    sessionStorage.setItem('current_user', JSON.stringify(user));
   }
 
   private loadStoredUser(): User | null {
     try {
-      const raw = localStorage.getItem(USER_KEY);
-      return raw ? (JSON.parse(raw) as User) : null;
+      const stored = sessionStorage.getItem('current_user');
+      return stored ? (JSON.parse(stored) as User) : null;
     } catch {
       return null;
     }
   }
 
-  private isTokenExpired(): boolean {
-    try {
-      const raw = localStorage.getItem(USER_KEY);
-      if (!raw) return true;
-      const authUser = JSON.parse(raw) as AuthUser;
-      return Date.now() > authUser.expiresAt;
-    } catch {
-      return true;
-    }
+  private clearSession(): void {
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    localStorage.removeItem(this.TOKEN_EXPIRY_KEY);
+    sessionStorage.clear();
+    this.currentUserSubject.next(null);
   }
 }

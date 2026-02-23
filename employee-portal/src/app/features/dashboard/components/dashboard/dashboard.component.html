@@ -1,0 +1,67 @@
+<!-- Welcome Banner -->
+<div class="welcome-banner">
+  <div class="welcome-text">
+    <h1>{{ greeting }}, {{ currentUser?.firstName }}!</h1>
+    <p>Here's what's happening at your organization today.</p>
+  </div>
+  <span class="date">{{ today | date:'fullDate' }}</span>
+</div>
+
+<!-- Stat Cards -->
+<div class="stats-grid">
+  <mat-card class="stat-card" *ngFor="let stat of statCards">
+    <div class="stat-content">
+      <div class="stat-icon" [style.background-color]="stat.color + '20'" [style.color]="stat.color">
+        <mat-icon>{{ stat.icon }}</mat-icon>
+      </div>
+      <div class="stat-info">
+        <p class="stat-title">{{ stat.title }}</p>
+        <h2 class="stat-value">{{ stat.value }}</h2>
+        <p class="stat-change" *ngIf="stat.change" [ngClass]="stat.changeType">
+          {{ stat.change }}
+        </p>
+      </div>
+    </div>
+  </mat-card>
+</div>
+
+<!-- Recent Activity -->
+<mat-card class="portal-card">
+  <div class="card-header">
+    <h2>Recent Activity</h2>
+    <button mat-button color="primary">View All</button>
+  </div>
+
+  <mat-list class="activity-list">
+    <mat-list-item *ngFor="let activity of recentActivities" class="activity-item">
+      <mat-icon matListItemIcon class="activity-icon">{{ activity.icon }}</mat-icon>
+      <div matListItemTitle>{{ activity.message }}</div>
+      <div matListItemLine class="activity-time">{{ activity.time }}</div>
+    </mat-list-item>
+  </mat-list>
+</mat-card>
+
+<!-- Quick Actions -->
+<mat-card class="portal-card quick-actions-card">
+  <div class="card-header">
+    <h2>Quick Actions</h2>
+  </div>
+  <div class="quick-actions">
+    <button mat-stroked-button routerLink="/employees/new" *appHasRole="['admin', 'hr_manager']">
+      <mat-icon>person_add</mat-icon>
+      Add Employee
+    </button>
+    <button mat-stroked-button routerLink="/leave/request">
+      <mat-icon>event_busy</mat-icon>
+      Request Leave
+    </button>
+    <button mat-stroked-button routerLink="/payroll">
+      <mat-icon>receipt_long</mat-icon>
+      View Payslips
+    </button>
+    <button mat-stroked-button routerLink="/profile">
+      <mat-icon>account_circle</mat-icon>
+      My Profile
+    </button>
+  </div>
+</mat-card>

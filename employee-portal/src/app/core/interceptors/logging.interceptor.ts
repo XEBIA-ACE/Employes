@@ -1,50 +1,51 @@
+import { Injectable } from '@angular/core';
 import {
-  HttpInterceptor,
   HttpRequest,
   HttpHandler,
   HttpEvent,
+  HttpInterceptor,
   HttpResponse,
-  HttpErrorResponse,
 } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable, tap, finalize } from 'rxjs';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+
 import { LoggerService } from '../services/logger.service';
 
 /**
- * Logs HTTP request/response details for observability.
+ * LoggingInterceptor logs all outgoing HTTP requests and responses
+ * with timing information for observability.
  */
 @Injectable()
 export class LoggingInterceptor implements HttpInterceptor {
   constructor(private logger: LoggerService) {}
 
-  intercept(req: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    const started = Date.now();
+  intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
+    const startTime = Date.now();
+    const reqId = this.generateId();
 
-    this.logger.debug(`HTTP → ${req.method} ${req.url}`);
+    this.logger.debug(`[${reqId}] → ${request.method} ${request.url}`);
 
-    return next.handle(req).pipe(
+    return next.handle(request).pipe(
       tap({
-        next: event => {
+        next: (event) => {
           if (event instanceof HttpResponse) {
-            const elapsed = Date.now() - started;
-            this.logger.debug(`HTTP ← ${req.method} ${req.url}`, {
-              status: event.status,
-              elapsed: `${elapsed}ms`,
-            });
+            const duration = Date.now() - startTime;
+            this.logger.debug(
+              `[${reqId}] ← ${event.status} ${request.method} ${request.url} (${duration}ms)`,
+            );
           }
         },
-        error: (err: HttpErrorResponse) => {
-          const elapsed = Date.now() - started;
-          this.logger.error(`HTTP ✗ ${req.method} ${req.url}`, {
-            status: err.status,
-            message: err.message,
-            elapsed: `${elapsed}ms`,
-          });
+        error: (error) => {
+          const duration = Date.now() - startTime;
+          this.logger.error(
+            `[${reqId}] ✗ ${error.status} ${request.method} ${request.url} (${duration}ms)`,
+          );
         },
       }),
-      finalize(() => {
-        // Could emit metrics here (e.g., to a monitoring service)
-      }),
     );
+  }
+
+  private generateId(): string {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 }

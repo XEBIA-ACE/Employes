@@ -1,76 +1,100 @@
-version: "3.9"
+version: '3.9'
 
-# =============================================================================
-# Employee Portal — Local Development Stack
-# =============================================================================
-# Services:
-#   frontend  — Angular dev server with hot reload
-#   backend   — Mock/real API server (replace with your actual backend)
-#   nginx     — Production-like serving (optional, use `--profile prod`)
-# =============================================================================
+# ============================================================
+# Employee Portal - Local Development Docker Compose
+# ============================================================
 
 services:
-
-  # ---------------------------------------------------------------------------
-  # Angular Dev Server
-  # ---------------------------------------------------------------------------
+  # Angular Frontend
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: production
     container_name: employee-portal-frontend
     ports:
-      - "4200:4200"
+      - "4200:80"
+    networks:
+      - employee-portal-network
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Development server (for hot-reload during development)
+  frontend-dev:
+    image: node:20-alpine
+    container_name: employee-portal-dev
+    working_dir: /app
     volumes:
       - .:/app
-      - /app/node_modules       # preserve node_modules inside container
+      - /app/node_modules
+    ports:
+      - "4201:4200"
+    networks:
+      - employee-portal-network
+    command: sh -c "npm ci && npm start -- --host 0.0.0.0 --poll 1000"
     environment:
       - NODE_ENV=development
-    command: npm start -- --host 0.0.0.0 --poll 1000
-    depends_on:
-      - backend
-    networks:
-      - portal-net
-    restart: unless-stopped
-
-  # ---------------------------------------------------------------------------
-  # Backend API (placeholder — swap with your real service)
-  # ---------------------------------------------------------------------------
-  backend:
-    image: node:20-alpine
-    container_name: employee-portal-backend
-    working_dir: /api
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./mock-api:/api
-    command: >
-      sh -c "npm install --silent && node server.js"
-    environment:
-      - PORT=3000
-      - NODE_ENV=development
-    networks:
-      - portal-net
-    restart: unless-stopped
-
-  # ---------------------------------------------------------------------------
-  # Production Nginx (opt-in)
-  # ---------------------------------------------------------------------------
-  nginx:
-    build:
-      context: .
-      target: production
-    container_name: employee-portal-nginx
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - portal-net
     profiles:
-      - prod
+      - dev
+
+  # Mock Backend API (JSON Server for development)
+  backend:
+    image: vimagick/json-server:latest
+    container_name: employee-portal-backend
+    volumes:
+      - ./mock-data/db.json:/data/db.json
+    ports:
+      - "8080:80"
+    networks:
+      - employee-portal-network
+    command: ["--watch", "db.json", "--port", "80", "--host", "0.0.0.0"]
     restart: unless-stopped
+
+  # PostgreSQL Database (for real backend integration)
+  db:
+    image: postgres:16-alpine
+    container_name: employee-portal-db
+    environment:
+      POSTGRES_DB: employee_portal
+      POSTGRES_USER: ${DB_USER:-portaluser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-portalpass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - employee-portal-network
+    restart: unless-stopped
+    profiles:
+      - full
+
+  # Redis (session/cache store)
+  redis:
+    image: redis:7-alpine
+    container_name: employee-portal-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - employee-portal-network
+    restart: unless-stopped
+    profiles:
+      - full
 
 networks:
-  portal-net:
+  employee-portal-network:
     driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

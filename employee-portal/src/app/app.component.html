@@ -1,28 +1,24 @@
-<!-- Authenticated shell layout -->
-<ng-container *ngIf="isAuthenticated">
-  <div class="app-shell">
+<!-- Employee Portal Root Component -->
+<div class="app-container" [class.authenticated]="isAuthenticated">
 
-    <!-- Sidebar -->
-    <app-sidebar [isOpen]="isSidebarOpen"></app-sidebar>
+  <!-- Global loading indicator during route transitions -->
+  <app-loading-spinner *ngIf="isLoading" [overlay]="true" message="Loading..."></app-loading-spinner>
 
-    <!-- Main area -->
-    <div class="main-area" [class.sidebar-collapsed]="!isSidebarOpen">
-
-      <!-- Header -->
-      <app-header
-        [sidebarOpen]="isSidebarOpen"
-        (sidebarToggle)="onSidebarToggle()"
-      ></app-header>
-
-      <!-- Page content -->
-      <main class="content-area">
+  <!-- Authenticated layout: sidebar + header + content -->
+  <ng-container *ngIf="isAuthenticated; else unauthenticated">
+    <app-sidebar></app-sidebar>
+    <div class="main-wrapper">
+      <app-header></app-header>
+      <main class="main-content" role="main">
         <router-outlet></router-outlet>
       </main>
+      <app-footer></app-footer>
     </div>
-  </div>
-</ng-container>
+  </ng-container>
 
-<!-- Unauthenticated (auth pages: no shell) -->
-<ng-container *ngIf="!isAuthenticated">
-  <router-outlet></router-outlet>
-</ng-container>
+  <!-- Unauthenticated layout: full-page auth view -->
+  <ng-template #unauthenticated>
+    <router-outlet></router-outlet>
+  </ng-template>
+
+</div>

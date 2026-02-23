@@ -1,16 +1,19 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs';
-import { AuthService } from '../../../core/services/auth.service';
+import { Store } from '@ngrx/store';
+import { Subject } from 'rxjs';
+import { takeUntil, filter } from 'rxjs/operators';
+
+import { AppState } from '../../../store/app.state';
+import { selectCurrentUser } from '../../../store/auth/auth.selectors';
 import { User } from '../../../core/models/user.model';
 
 export interface NavItem {
   label: string;
   icon: string;
-  route?: string;
+  route: string;
   roles?: string[];
   children?: NavItem[];
-  badge?: string | number;
 }
 
 @Component({
@@ -18,11 +21,10 @@ export interface NavItem {
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.scss'],
 })
-export class SidebarComponent implements OnInit {
-  @Input() isOpen = true;
-
+export class SidebarComponent implements OnInit, OnDestroy {
   currentUser: User | null = null;
-  currentUrl  = '';
+  isCollapsed = false;
+  activeRoute = '';
 
   readonly navItems: NavItem[] = [
     {
@@ -34,71 +36,74 @@ export class SidebarComponent implements OnInit {
       label: 'Employees',
       icon: 'people',
       route: '/employees',
-      roles: ['admin', 'hr', 'manager'],
+      roles: ['admin', 'hr_manager'],
     },
     {
       label: 'Leave Management',
       icon: 'event_busy',
-      children: [
-        { label: 'My Leaves', icon: 'beach_access', route: '/leave/my-leaves' },
-        { label: 'Request Leave', icon: 'add_circle', route: '/leave/request' },
-        { label: 'Leave Approvals', icon: 'task_alt', route: '/leave/approvals', roles: ['admin', 'hr', 'manager'] },
-      ],
+      route: '/leave',
+    },
+    {
+      label: 'Payroll',
+      icon: 'payments',
+      route: '/payroll',
     },
     {
       label: 'My Profile',
-      icon: 'person',
+      icon: 'account_circle',
       route: '/profile',
-    },
-    {
-      label: 'Announcements',
-      icon: 'campaign',
-      route: '/announcements',
-    },
-    {
-      label: 'Administration',
-      icon: 'admin_panel_settings',
-      roles: ['admin', 'hr'],
-      children: [
-        { label: 'Departments', icon: 'business', route: '/admin/departments' },
-        { label: 'Positions', icon: 'work', route: '/admin/positions' },
-        { label: 'Settings', icon: 'settings', route: '/admin/settings' },
-      ],
     },
   ];
 
-  expandedItems = new Set<string>();
+  private destroy$ = new Subject<void>();
 
   constructor(
-    private authService: AuthService,
+    private store: Store<AppState>,
     private router: Router,
   ) {}
 
   ngOnInit(): void {
-    this.authService.currentUser$.subscribe(user => (this.currentUser = user));
+    this.store
+      .select(selectCurrentUser)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((user) => (this.currentUser = user));
+
     this.router.events
-      .pipe(filter(e => e instanceof NavigationEnd))
-      .subscribe(e => (this.currentUrl = (e as NavigationEnd).urlAfterRedirects));
-    this.currentUrl = this.router.url;
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((event) => event instanceof NavigationEnd),
+      )
+      .subscribe((event) => {
+        this.activeRoute = (event as NavigationEnd).urlAfterRedirects;
+      });
   }
 
-  isVisible(item: NavItem): boolean {
-    if (!item.roles || item.roles.length === 0) return true;
-    return this.authService.hasRole(item.roles);
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  isActive(item: NavItem): boolean {
-    if (item.route) return this.currentUrl.startsWith(item.route);
-    return item.children?.some(c => c.route && this.currentUrl.startsWith(c.route)) ?? false;
+  toggleSidebar(): void {
+    this.isCollapsed = !this.isCollapsed;
   }
 
-  toggleExpand(label: string): void {
-    this.expandedItems.has(label)
-      ? this.expandedItems.delete(label)
-      : this.expandedItems.add(label);
+  isActive(route: string): boolean {
+    return this.activeRoute.startsWith(route);
   }
 
-  isExpanded(label: string): boolean {
-    return this.expandedItems.has(label);
+  canAccessItem(item: NavItem): boolean {
+    if (!item.roles || item.roles.length === 0) {
+      return true;
+    }
+    if (!this.currentUser) {
+      return false;
+    }
+    return item.roles.some(
+      (role) => this.currentUser!.role === role || this.currentUser!.roles.includes(role as any),
+    );
+  }
+
+  get visibleNavItems(): NavItem[] {
+    return this.navItems.filter((item) => this.canAccessItem(item));
   }
 }

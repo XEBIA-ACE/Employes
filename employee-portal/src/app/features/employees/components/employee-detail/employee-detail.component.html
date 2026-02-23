@@ -1,0 +1,133 @@
+<app-loading-spinner *ngIf="isLoading"></app-loading-spinner>
+
+<ng-container *ngIf="!isLoading && employee">
+  <!-- Header -->
+  <div class="detail-header">
+    <button mat-icon-button (click)="onBack()" matTooltip="Back to list">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1 class="page-title">Employee Profile</h1>
+    <button mat-flat-button color="primary" (click)="onEdit()" *appHasRole="['admin', 'hr_manager']">
+      <mat-icon>edit</mat-icon>
+      Edit Profile
+    </button>
+  </div>
+
+  <!-- Profile Card -->
+  <mat-card class="portal-card profile-card">
+    <div class="profile-header">
+      <div class="avatar-large">
+        {{ initials }}
+      </div>
+      <div class="profile-info">
+        <h2>{{ employee.fullName }}</h2>
+        <p class="position">{{ employee.position }} &bull; {{ employee.department }}</p>
+        <p class="employee-id">ID: {{ employee.employeeNumber }}</p>
+        <span class="badge" [ngClass]="'badge-' + (employee.status | statusBadge)">
+          {{ employee.status | titlecase }}
+        </span>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Details Grid -->
+  <div class="detail-grid">
+    <!-- Personal Details -->
+    <mat-card class="portal-card">
+      <div class="card-header">
+        <h3><mat-icon>person</mat-icon> Personal Information</h3>
+      </div>
+      <div class="detail-list">
+        <div class="detail-item">
+          <span class="label">Email</span>
+          <span class="value">{{ employee.email }}</span>
+        </div>
+        <div class="detail-item" *ngIf="employee.phone">
+          <span class="label">Phone</span>
+          <span class="value">{{ employee.phone }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Date of Birth</span>
+          <span class="value">{{ employee.dateOfBirth | date:'mediumDate' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Gender</span>
+          <span class="value">{{ employee.gender | titlecase }}</span>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Employment Details -->
+    <mat-card class="portal-card">
+      <div class="card-header">
+        <h3><mat-icon>work</mat-icon> Employment Details</h3>
+      </div>
+      <div class="detail-list">
+        <div class="detail-item">
+          <span class="label">Employment Type</span>
+          <span class="value">{{ employee.employmentType | titlecase }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Hire Date</span>
+          <span class="value">{{ employee.hireDate | date:'mediumDate' }}</span>
+        </div>
+        <div class="detail-item" *ngIf="employee.managerName">
+          <span class="label">Manager</span>
+          <span class="value">{{ employee.managerName }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Base Salary</span>
+          <span class="value">{{ employee.baseSalary | currency:employee.currency }}</span>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Address -->
+    <mat-card class="portal-card" *ngIf="employee.address">
+      <div class="card-header">
+        <h3><mat-icon>location_on</mat-icon> Address</h3>
+      </div>
+      <div class="detail-list">
+        <div class="detail-item">
+          <span class="label">Street</span>
+          <span class="value">{{ employee.address.street }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">City</span>
+          <span class="value">{{ employee.address.city }}, {{ employee.address.state }} {{ employee.address.postalCode }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Country</span>
+          <span class="value">{{ employee.address.country }}</span>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Emergency Contact -->
+    <mat-card class="portal-card" *ngIf="employee.emergencyContact">
+      <div class="card-header">
+        <h3><mat-icon>emergency</mat-icon> Emergency Contact</h3>
+      </div>
+      <div class="detail-list">
+        <div class="detail-item">
+          <span class="label">Name</span>
+          <span class="value">{{ employee.emergencyContact.name }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Relationship</span>
+          <span class="value">{{ employee.emergencyContact.relationship }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Phone</span>
+          <span class="value">{{ employee.emergencyContact.phone }}</span>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+</ng-container>
+
+<div class="not-found" *ngIf="!isLoading && !employee">
+  <mat-icon>person_off</mat-icon>
+  <h2>Employee not found</h2>
+  <button mat-flat-button color="primary" (click)="onBack()">Back to Employees</button>
+</div>

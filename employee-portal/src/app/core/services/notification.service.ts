@@ -1,47 +1,44 @@
 import { Injectable } from '@angular/core';
 import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
 
-export type NotificationType = 'success' | 'error' | 'info' | 'warn';
+export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
 /**
- * Centralised notification service using Angular Material Snackbar.
+ * Notification service wrapping Angular Material SnackBar
+ * for consistent app-wide toast notifications.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class NotificationService {
-  private readonly defaults: MatSnackBarConfig = {
-    duration: 4000,
-    horizontalPosition: 'end',
-    verticalPosition: 'top',
-  };
+  private readonly defaultDuration = 4000;
 
   constructor(private snackBar: MatSnackBar) {}
 
-  success(message: string, action = 'Close'): void {
-    this.show(message, action, 'snackbar-success');
+  success(message: string, duration = this.defaultDuration): void {
+    this.show(message, 'success', duration);
   }
 
-  error(message: string, action = 'Close', duration = 6000): void {
-    this.show(message, action, 'snackbar-error', duration);
+  error(message: string, duration = 6000): void {
+    this.show(message, 'error', duration);
   }
 
-  info(message: string, action = 'Close'): void {
-    this.show(message, action, 'snackbar-info');
+  warning(message: string, duration = this.defaultDuration): void {
+    this.show(message, 'warning', duration);
   }
 
-  warn(message: string, action = 'Close'): void {
-    this.show(message, action, 'snackbar-warn', 5000);
+  info(message: string, duration = this.defaultDuration): void {
+    this.show(message, 'info', duration);
   }
 
-  private show(
-    message: string,
-    action: string,
-    panelClass: string,
-    duration?: number,
-  ): void {
-    this.snackBar.open(message, action, {
-      ...this.defaults,
-      ...(duration ? { duration } : {}),
-      panelClass: [panelClass],
-    });
+  private show(message: string, type: NotificationType, duration: number): void {
+    const config: MatSnackBarConfig = {
+      duration,
+      horizontalPosition: 'right',
+      verticalPosition: 'top',
+      panelClass: [`${type}-snackbar`],
+    };
+
+    this.snackBar.open(message, 'Dismiss', config);
   }
 }
